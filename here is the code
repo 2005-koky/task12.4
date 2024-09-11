@@ -1,0 +1,77 @@
+import numpy as np
+from scipy import signal
+import matplotlib.pyplot as plt
+
+ 
+
+const int INPUT_PIN = A0 ;
+const int OUTPUT_PIN = DD3 ;
+
+double dt ,last_time;
+double integral , previous , output=0;
+double kp , ki , kd;
+double set_point = 75.00;
+
+void setup()
+{
+    kp=0.7;
+    ki=0.3;
+    kd=0.00;
+    last_time=0;
+    Serial.begin(9600);
+    analogWrite(OUTPUT_PIN, 0);
+    for (int i ; i<100;i++)
+    {
+        Serial.print(set_point);
+        Serial.print(",");
+        Serial.print(output);
+
+        delay(100);
+    }
+    
+    delay(100);
+}
+
+void loop()
+{
+    
+    double now = millis(); //in milliseconds
+    dt = (now-last_time)/1000.00;  // in seconds 
+    last_time=now;
+
+    double actual = map(analogRead(INPUT_PIN),0,1024,0,225);
+    double error = set_point - actual;
+    output=pid(error);
+
+    # the following few lines are for smoothing 
+
+    double smoothing_factor =0.9;
+    double x = actual;
+    double y = output;
+ 
+    plt.figure(figsize=(12, 9))
+    plt.plot(x, y, label="y_signal")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+      
+    # smoothing finished 
+    # I know smoothing isn't true but at least I 've tried.
+      
+    analogWrite(OUTPUT_PIN, output);
+    Serial.print(set_point);
+    Serial.print(",");
+    Serial.print(output);
+        
+    delay(300);
+}
+
+double pid(double error)
+{
+    double proportional=error;
+    integral +=error * dt ;
+    double dervative = (error - previous)/dt;
+    previous=error;
+    double output = (kp*proportional)+(ki*integral)+(kd*dervative);
+    return output ;
+}
